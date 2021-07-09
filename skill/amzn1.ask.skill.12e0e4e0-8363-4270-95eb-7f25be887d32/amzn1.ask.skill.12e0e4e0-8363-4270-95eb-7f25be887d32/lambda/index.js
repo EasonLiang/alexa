@@ -10,12 +10,13 @@ const LaunchRequestHandler = {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
     },
     handle(handlerInput) {
-        const speakOutput = 'Welcome, you can say Hello or Help. Which would you like to try?';
+        const speakOutput = 'Hello, Welcome to Annual Dinner. That was a piece of cake! Bye! ' ;
+                                                                //eason-01 greeting words ⬇️'Welcome, you can say Hello or Help. Which would you like to try?';
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
-            .reprompt(speakOutput)
-            .getResponse();
+            //.reprompt(speakOutput)                            //eason-02 comment to exit after speaking with no need to listen for user's response
+            .getResponse();                                     //eason-03 ?? Callback interacting with ASK ??
     }
 };
 
