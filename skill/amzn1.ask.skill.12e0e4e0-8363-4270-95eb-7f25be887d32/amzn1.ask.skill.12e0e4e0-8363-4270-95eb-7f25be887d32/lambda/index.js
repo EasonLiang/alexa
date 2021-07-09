@@ -10,23 +10,28 @@ const LaunchRequestHandler = {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
     },
     handle(handlerInput) {
-        const speakOutput = 'Hello, Welcome to Annual Dinner. That was a piece of cake! Bye! ' ;
-                                                                //eason-01 greeting words ⬇️'Welcome, you can say Hello or Help. Which would you like to try?';
-
+        const speakOutput = 'Hello, Welcome to Annual Dinner. What is your birthday?';//eason-04-01 greeting words ⬇️ 
+                                                                //That was a piece of cake! Bye! ' ; 'Welcome, you can say Hello or Help. Which would you like to try?';
+        const repromptText = 'I was born Nov. 6th, 2014. When were you born?' ;
+        
         return handlerInput.responseBuilder
             .speak(speakOutput)
-            //.reprompt(speakOutput)                            //eason-02 comment to exit after speaking with no need to listen for user's response
+            .reprompt(repromptText)                              //eason-05-02 uncomment/comment to exit after speaking with/without need to listen for user's response ; if uncommented , give a example that Alexa expects user to say in provided and specified format .
             .getResponse();                                     //eason-03 ?? Callback interacting with ASK ??
     }
 };
 
-const HelloWorldIntentHandler = {
+const CaptureBirthdayIntentHandler = {           //eason-06 alter from HelloWorld to CaptureBirthday
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'HelloWorldIntent';
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'CaptureBirthdayIntent';   //eason-07 alter from HelloWorld to CaptureBirthday
     },
     handle(handlerInput) {
-        const speakOutput = 'Hello World!';
+        const year = handlerInput.requestEnvelope.request.intent.slots.year.value ;                  //eason-08-09-10
+        const month = handlerInput.requestEnvelope.request.intent.slots.month.value ;
+        const day = handlerInput.requestEnvelope.request.intent.slots.day.value ;
+        
+        const speakOutput = `Thanks, I'll remember that you were born ${month} ${day} ${year}.`;    //eason-11 alter from 'Hello World!';                                         
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
@@ -145,7 +150,7 @@ const ErrorHandler = {
 exports.handler = Alexa.SkillBuilders.custom()
     .addRequestHandlers(
         LaunchRequestHandler,
-        HelloWorldIntentHandler,
+        CaptureBirthdayIntentHandler,                                           //eason-12 alter from HelloWorld to CaptureBirthday
         HelpIntentHandler,
         CancelAndStopIntentHandler,
         FallbackIntentHandler,
