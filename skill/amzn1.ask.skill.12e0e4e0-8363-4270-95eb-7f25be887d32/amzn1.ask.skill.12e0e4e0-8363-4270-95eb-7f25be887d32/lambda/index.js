@@ -4,6 +4,7 @@
  * session persistence, api calls, and more.
  * */
 const Alexa = require('ask-sdk-core');
+const persistenceAdapter = require('ask-sdk-s3-persistence-adapter');           //eason-13-add  add dependency
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
@@ -21,15 +22,60 @@ const LaunchRequestHandler = {
     }
 };
 
+const HasBirthdayLaunchRequestHandler = {                       //eason-23-add canHandle check user's birth is saved on S3;handle notify func to SDK
+    canHandle(handlerInput) {
+        const attributesManager = handlerInput.attributesManager;
+        const sessionAttributes = attributesManager.getSessionAttributes() || {} ;
+        
+        const year = sessionAttributes.hasOwnProperty('year')?sessionAttributes.year : 0;
+        const month = sessionAttributes.hasOwnProperty('month')?sessionAttributes.month : 0;
+        const day = sessionAttributes.hasOwnProperty('day')?sessionAttributes.day : 0;
+        
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest'
+                && year
+                && month
+                && day ;
+    },
+    handle(handlerInput) {
+        const attributesManager = handlerInput.attributesManager;
+        const sessionAttributes = attributesManager.getSessionAttributes() || {} ;
+        
+        const year = sessionAttributes.hasOwnProperty('year')?sessionAttributes.year : 0;
+        const month = sessionAttributes.hasOwnProperty('month')?sessionAttributes.month : 0;
+        const day = sessionAttributes.hasOwnProperty('day')?sessionAttributes.day : 0;
+        
+        //TODO:: Use setting API to get current date and then compute how many days until user's birthday
+        //TODO:: Say Happy birthday to the user's birthday 
+        
+        const speakOutput = `Welcome back. It looks like there are X more days until your y-th birthday`;
+        
+        return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .getResponse();
+    }
+};
+
 const CaptureBirthdayIntentHandler = {           //eason-06 alter from HelloWorld to CaptureBirthday
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'CaptureBirthdayIntent';   //eason-07 alter from HelloWorld to CaptureBirthday
     },
-    handle(handlerInput) {
+    async handle(handlerInput) {                                                                //eason-15-add async attribute
         const year = handlerInput.requestEnvelope.request.intent.slots.year.value ;                  //eason-08-09-10
         const month = handlerInput.requestEnvelope.request.intent.slots.month.value ;
         const day = handlerInput.requestEnvelope.request.intent.slots.day.value ;
+        
+        //"ask-sdk-s3-persistence-adapter":"^2.0.0"                                           //eason-16-add dependency declaration::::tutorial error
+        const attributesManager = handlerInput.attributesManager;                               //eason-17-add attributesManager
+        let birthdayAttributes = {                                                            //eason-27alter-18add from const &construct birthdayAttributes
+          "year":year,
+          "month":month,
+          "day":day
+        };
+        
+        attributesManager.setPersistentAttributes(birthdayAttributes);                          //eason-19-add value set to attributesManager
+        
+        await attributesManager.savePersistentAttributes();                                    //eason-20-add wait for setting user information to S3
         
         const speakOutput = `Thanks, I'll remember that you were born ${month} ${day} ${year}.`;    //eason-11 alter from 'Hello World!';                                         
 
@@ -142,21 +188,43 @@ const ErrorHandler = {
     }
 };
 
+const LoadBirthdayInterceptor = {                                                       //eason-21-add construct an interceptor to consolidate
+    async process(handlerInput) {
+        const attributesManager = handlerInput.attributesManager;
+        const sessionAttributes = await attributesManager.getPersistentAttributes() || {} ;
+        
+        const year= sessionAttributes.hasOwnProperty('year')?sessionAttributes.year:0;
+        const month= sessionAttributes.hasOwnProperty('month')?sessionAttributes.month:0;
+        const day= sessionAttributes.hasOwnProperty('day')?sessionAttributes.day:0;
+        
+        if(year&&month&&day) {
+            attributesManager.setSessionAttributes(sessionAttributes);
+        }
+    }
+};
+
 /**
  * This handler acts as the entry point for your skill, routing all request and response
  * payloads to the handlers above. Make sure any new handlers or interceptors you've
  * defined are included below. The order matters - they're processed top to bottom 
  * */
 exports.handler = Alexa.SkillBuilders.custom()
+    .withPersistenceAdapter(                                                     //eason-14-add notify that persistenceAdapter exist
+        new persistenceAdapter.S3PersistenceAdapter({bucketName:process.env.S3_PERSISTENCE_BUCKET})
+    )
     .addRequestHandlers(
+        HasBirthdayLaunchRequestHandler,                                        //eason-24-add callback chain
         LaunchRequestHandler,
         CaptureBirthdayIntentHandler,                                           //eason-12 alter from HelloWorld to CaptureBirthday
         HelpIntentHandler,
         CancelAndStopIntentHandler,
-        FallbackIntentHandler,
+        FallbackIntentHandler,                                                  //eason-??-25 whether to delete
         SessionEndedRequestHandler,
         IntentReflectorHandler)
+    .addRequestInterceptors(                                                    //eason-22 register an interceptor to the SDK   
+        LoadBirthdayInterceptor
+    )
     .addErrorHandlers(
         ErrorHandler)
-    .withCustomUserAgent('sample/hello-world/v1.2')
+    .withCustomUserAgent('sample/hello-world/v1.2')                             //eason-??-26 wheter to delete
     .lambda();
