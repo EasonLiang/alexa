@@ -8,7 +8,7 @@ const persistenceAdapter = require('ask-sdk-s3-persistence-adapter');           
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
+        return handlerInput.requestEnvelope.request.type === 'LaunchRequest';	//eason-28 alter from Alexa.getRequestType(handlerInput.requestEnvelope)
     },
     handle(handlerInput) {
         const speakOutput = 'Hello, Welcome to Annual Dinner. What is your birthday?';//eason-04-01 greeting words ⬇️ 
@@ -31,7 +31,7 @@ const HasBirthdayLaunchRequestHandler = {                       //eason-23-add c
         const month = sessionAttributes.hasOwnProperty('month')?sessionAttributes.month : 0;
         const day = sessionAttributes.hasOwnProperty('day')?sessionAttributes.day : 0;
         
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest'
+        return	handlerInput.requestEnvelope.request.type === 'LaunchRequest'		//eason-29 alter from Alexa.getRequestType(handlerInput.requestEnvelope)
                 && year
                 && month
                 && day ;
@@ -57,9 +57,9 @@ const HasBirthdayLaunchRequestHandler = {                       //eason-23-add c
 
 const CaptureBirthdayIntentHandler = {           //eason-06 alter from HelloWorld to CaptureBirthday
     canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'CaptureBirthdayIntent';   //eason-07 alter from HelloWorld to CaptureBirthday
-    },
+        return  handlerInput.requestEnvelope.request.type === 'IntentRequest'		//eason-30 alter from Alexa.getRequestType(handlerInput.requestEnvelope)
+            && handlerInput.requestEnvelope.request.intent.name === 'CaptureBirthdayIntent'; 
+    },								//eason-31alter-07alter from Alexa.getIntentName(handlerInput.requestEnvelope) & from HelloWorld to CaptureBirthday
     async handle(handlerInput) {                                                                //eason-15-add async attribute
         const year = handlerInput.requestEnvelope.request.intent.slots.year.value ;                  //eason-08-09-10
         const month = handlerInput.requestEnvelope.request.intent.slots.month.value ;
@@ -88,8 +88,8 @@ const CaptureBirthdayIntentHandler = {           //eason-06 alter from HelloWorl
 
 const HelpIntentHandler = {
     canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.HelpIntent';
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest'			//eason-32 alter from Alexa.getRequestType(handlerInput.requestEnvelope)
+            && handlerInput.requestEnvelope.request.intent.name === 'AMAZON.HelpIntent';//eason-33 alter from Alexa.getIntentName(handlerInput.requestEnvelope)
     },
     handle(handlerInput) {
         const speakOutput = 'You can say hello to me! How can I help?';
@@ -103,9 +103,9 @@ const HelpIntentHandler = {
 
 const CancelAndStopIntentHandler = {
     canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent'
-                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent');
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest'			//eason-34 alter from Alexa.getRequestType(handlerInput.requestEnvelope)
+            &&( handlerInput.requestEnvelope.request.intent.name === 'AMAZON.CancelIntent' //eason-35-36 alter from Alexa.getIntentName(handlerInput.requestEnvelope)
+                || handlerInput.requestEnvelope.request.intent.name === 'AMAZON.StopIntent');
     },
     handle(handlerInput) {
         const speakOutput = 'Goodbye!';
@@ -120,6 +120,7 @@ const CancelAndStopIntentHandler = {
  * It must also be defined in the language model (if the locale supports it)
  * This handler can be safely added but will be ingnored in locales that do not support it yet 
  * */
+/*																						//eason-37-del obsolete
 const FallbackIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -134,6 +135,7 @@ const FallbackIntentHandler = {
             .getResponse();
     }
 };
+*/
 /* *
  * SessionEndedRequest notifies that a session was ended. This handler will be triggered when a currently open 
  * session is closed for one of the following reasons: 1) The user says "exit" or "quit". 2) The user does not 
@@ -141,7 +143,7 @@ const FallbackIntentHandler = {
  * */
 const SessionEndedRequestHandler = {
     canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'SessionEndedRequest';
+        return handlerInput.requestEnvelope.request.type === 'SessionEndedRequest';		//eason-38 alter from Alexa.getRequestType(handlerInput.requestEnvelope)
     },
     handle(handlerInput) {
         console.log(`~~~~ Session ended: ${JSON.stringify(handlerInput.requestEnvelope)}`);
@@ -156,7 +158,7 @@ const SessionEndedRequestHandler = {
  * */
 const IntentReflectorHandler = {
     canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest';
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest';			//eason-39 alter from Alexa.getRequestType(handlerInput.requestEnvelope)
     },
     handle(handlerInput) {
         const intentName = Alexa.getIntentName(handlerInput.requestEnvelope);
@@ -178,8 +180,8 @@ const ErrorHandler = {
         return true;
     },
     handle(handlerInput, error) {
-        const speakOutput = 'Sorry, I had trouble doing what you asked. Please try again.';
-        console.log(`~~~~ Error handled: ${JSON.stringify(error)}`);
+        console.log(`~~~~ Error handled: ${error.message}`);									//eason-40 alter from JSON.stringfy(error)
+        const speakOutput = 'Sorry, I could not understand what you asked. Please try again.';	//eason-41 calibrate confusing grammer against git tutorial
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
@@ -204,7 +206,7 @@ const LoadBirthdayInterceptor = {                                               
 };
 
 /**
- * This handler acts as the entry point for your skill, routing all request and response
+ * The SkillBuilder acts as the entry point for your skill, routing all request and response
  * payloads to the handlers above. Make sure any new handlers or interceptors you've
  * defined are included below. The order matters - they're processed top to bottom 
  * */
@@ -218,7 +220,7 @@ exports.handler = Alexa.SkillBuilders.custom()
         CaptureBirthdayIntentHandler,                                           //eason-12 alter from HelloWorld to CaptureBirthday
         HelpIntentHandler,
         CancelAndStopIntentHandler,
-        FallbackIntentHandler,                                                  //eason-??-25 whether to delete
+//         FallbackIntentHandler,                                                  //eason-25 obsolete
         SessionEndedRequestHandler,
         IntentReflectorHandler)
     .addRequestInterceptors(                                                    //eason-22 register an interceptor to the SDK   
@@ -226,5 +228,5 @@ exports.handler = Alexa.SkillBuilders.custom()
     )
     .addErrorHandlers(
         ErrorHandler)
-    .withCustomUserAgent('sample/hello-world/v1.2')                             //eason-??-26 wheter to delete
+//     .withCustomUserAgent('sample/hello-world/v1.2')                             //eason-26 obsolete
     .lambda();
