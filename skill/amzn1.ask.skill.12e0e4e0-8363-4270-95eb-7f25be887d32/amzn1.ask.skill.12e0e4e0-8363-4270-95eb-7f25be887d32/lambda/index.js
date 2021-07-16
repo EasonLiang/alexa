@@ -24,6 +24,7 @@ const LaunchRequestHandler = {
 
 const HasBirthdayLaunchRequestHandler = {                       //eason-23-add canHandle check user's birth is saved on S3;handle notify func to SDK
     canHandle(handlerInput) {
+        console.log(JSON.stringify(handlerInput.requestEnvelope.request));      //eason-56add log along with v2
         const attributesManager = handlerInput.attributesManager;
         const sessionAttributes = attributesManager.getSessionAttributes() || {} ;
         
@@ -58,6 +59,8 @@ const HasBirthdayLaunchRequestHandler = {                       //eason-23-add c
             console.log('error',error.message);
         }
 
+        console.log('userTimeZone',userTimeZone);                                       //eason-57add for log userTimeZone
+
         //TODO:: Use setting API to get current date and then compute how many days until user's birthday
         //TODO:: Say Happy birthday to the user's birthday 
         
@@ -66,13 +69,18 @@ const HasBirthdayLaunchRequestHandler = {                       //eason-23-add c
 
         //removing the time from the date because it affects our difference calculation
         const currentDate = new Date(currentDateTime.getFullYear(),currentDateTime.getMonth(),currentDateTime.getDate());
-        const currentYear = currentDate.getFullYear();                    //eason-49add-50add extract Y/M/D, recreate date without S
+        let currentYear = currentDate.getFullYear();                //eason-58alter from const to let ↓↓
+                                                                        //eason-49add-50add extract Y/M/D, recreate date without S
+
+        console.log('currentDateTime:', currentDateTime);              //eason-59add-60add for log currentDateTime and currentDate
+        console.log('currentDate:', currentDate);
 
         //getting the next birthday
         let nextBirthday = Date.parse(`${month} ${day}, ${currentYear}`);       //eason-51add-52add determine user's next birthday
         //adjust the nextBirthday by one year if the current date is after their birthday
         if( currentDate.getTime() > nextBirthday ) {
             nextBirthday = Date.parse(`${month} ${day}, ${currentYear + 1}`);
+            currentYear++;                                              //eason-61 for v2
         }
 
         //const speakOutput = `Welcome back. It looks like there are X more days until your y-th birthday`; 
@@ -247,7 +255,7 @@ const LoadBirthdayInterceptor = {                                               
  * defined are included below. The order matters - they're processed top to bottom 
  * */
 exports.handler = Alexa.SkillBuilders.custom()
-    .withApiClient( new Alexa.DefaultApiClient() )                              //eason-43add add ApiClient object
+    // .withApiClient( new Alexa.DefaultApiClient() )                              //eason-54del-43add add ApiClient object
     .withPersistenceAdapter(                                                     //eason-14-add notify that persistenceAdapter exist
         new persistenceAdapter.S3PersistenceAdapter({bucketName:process.env.S3_PERSISTENCE_BUCKET})
     )
@@ -266,4 +274,5 @@ exports.handler = Alexa.SkillBuilders.custom()
     .addErrorHandlers(
         ErrorHandler)
 //     .withCustomUserAgent('sample/hello-world/v1.2')                             //eason-26 obsolete
+    .withApiClient( new Alexa.DefaultApiClient() )                              //eason-55add move here for "add ApiClient object"
     .lambda();
