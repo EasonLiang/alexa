@@ -36,7 +36,10 @@ const HasBirthdayLaunchRequestHandler = {                       //eason-23-add c
                 && month
                 && day ;
     },
-    handle(handlerInput) {
+    async handle(handlerInput) {                                                        //eason-47add async character
+        const serviceClientFactory = handlerInput.serviceClientFactory;                  //eason-44add serviceClient Factory
+        const deviceId = handlerInput.requestEnvelope.context.System.device.deviceId ;  //eason-42add request deviceId
+
         const attributesManager = handlerInput.attributesManager;
         const sessionAttributes = attributesManager.getSessionAttributes() || {} ;
         
@@ -44,11 +47,44 @@ const HasBirthdayLaunchRequestHandler = {                       //eason-23-add c
         const month = sessionAttributes.hasOwnProperty('month')?sessionAttributes.month : 0;
         const day = sessionAttributes.hasOwnProperty('day')?sessionAttributes.day : 0;
         
+        let userTimeZone;                                                               //eason-45add-46add get TimeZone and handle exception
+        try {
+            const upsServiceClient = serviceClientFactory.getUpsServiceClient();
+            userTimeZone = await upsServiceClient.getSystemTimeZone(deviceId);
+        } catch (error) {
+            if(error.name !== 'ServiceError' ) {
+                return handlerInput.responseBuilder.speak("There was a problem connecting to the service.").getResponse();
+            }
+            console.log('error',error.message);
+        }
+
         //TODO:: Use setting API to get current date and then compute how many days until user's birthday
         //TODO:: Say Happy birthday to the user's birthday 
         
-        const speakOutput = `Welcome back. It looks like there are X more days until your y-th birthday`;
-        
+        //getting the current date with the time
+        const currentDateTime = new Date(new Date().toLocaleString("en-US",{timeZone:userTimeZone}));   //eason-48add get correct date
+
+        //removing the time from the date because it affects our difference calculation
+        const currentDate = new Date(currentDateTime.getFullYear(),currentDateTime.getMonth(),currentDateTime.getDate());
+        const currentYear = currentDate.getFullYear();                    //eason-49add-50add extract Y/M/D, recreate date without S
+
+        //getting the next birthday
+        let nextBirthday = Date.parse(`${month} ${day}, ${currentYear}`);       //eason-51add-52add determine user's next birthday
+        //adjust the nextBirthday by one year if the current date is after their birthday
+        if( currentDate.getTime() > nextBirthday ) {
+            nextBirthday = Date.parse(`${month} ${day}, ${currentYear + 1}`);
+        }
+
+        //const speakOutput = `Welcome back. It looks like there are X more days until your y-th birthday`; 
+        const oneDay = 24*60*60*1000;                                           //eason-53replace this with belowing
+        //setting the default speakOutput to Happy xth Birthday!
+        //Don't worry about when to use st, th , rd --Alexa will automatically correct the ordinal for you.
+        let speakOutput = `Happy ${currentYear - year}th birthday `; 
+        if(currentDate.getTime() !== nextBirthday ) {
+            const diffDays = Math.round(Math.abs((currentDate.getTime() - nextBirthday)/oneDay));
+            speakOutput = `Welcome back. It looks like there are ${diffDays} days until your ${currentYear - year}th birthday`;
+        }
+
         return handlerInput.responseBuilder
                 .speak(speakOutput)
                 .getResponse();
@@ -211,6 +247,7 @@ const LoadBirthdayInterceptor = {                                               
  * defined are included below. The order matters - they're processed top to bottom 
  * */
 exports.handler = Alexa.SkillBuilders.custom()
+    .withApiClient( new Alexa.DefaultApiClient() )                              //eason-43add add ApiClient object
     .withPersistenceAdapter(                                                     //eason-14-add notify that persistenceAdapter exist
         new persistenceAdapter.S3PersistenceAdapter({bucketName:process.env.S3_PERSISTENCE_BUCKET})
     )
